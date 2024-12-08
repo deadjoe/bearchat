@@ -30,7 +30,8 @@ export function SettingsPanel({
   const handleSpeechLangChange = (value: string) => {
     onSpeechLangChange(value);
     // 自动更新翻译语言代码
-    const translationLang = SPEECH_TO_TRANSLATION_LANG[value as keyof typeof SPEECH_TO_TRANSLATION_LANG];
+    const translationLang =
+      SPEECH_TO_TRANSLATION_LANG[value as keyof typeof SPEECH_TO_TRANSLATION_LANG];
     if (translationLang === targetLang) {
       // 如果目标语言与源语言相同，自动切换到英语
       onTargetLangChange(translationLang === 'en' ? 'zh' : 'en');

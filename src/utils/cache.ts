@@ -6,7 +6,7 @@ interface CacheItem {
 
 interface CacheOptions {
   expirationTime?: number; // 过期时间（毫秒）
-  maxItems?: number;       // 最大缓存条目数
+  maxItems?: number; // 最大缓存条目数
 }
 
 const DEFAULT_OPTIONS: Required<CacheOptions> = {
@@ -53,7 +53,7 @@ export class TranslationCache {
   private cleanup(force: boolean = false): void {
     const cache = this.getCache();
     const entries = Object.entries(cache);
-    
+
     // 如果强制清理，删除一半的缓存
     if (force) {
       const sortedEntries = entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
@@ -64,7 +64,7 @@ export class TranslationCache {
 
     // 清理过期缓存
     const validEntries = entries.filter(([_, item]) => !this.isExpired(item.timestamp));
-    
+
     // 如果超出最大条目数，只保留最新的
     const sortedEntries = validEntries
       .sort((a, b) => b[1].timestamp - a[1].timestamp)

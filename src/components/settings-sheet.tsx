@@ -33,6 +33,12 @@ interface Settings {
   modelName: string;
 }
 
+interface SettingsError {
+  apiKey: boolean;
+  baseUrl: boolean;
+  modelName: boolean;
+}
+
 const defaultSettings: Settings = {
   apiKey: '',
   baseUrl: 'https://api.openai.com/v1',
@@ -62,21 +68,21 @@ export function SettingsSheet() {
 
   const validateSettings = (): boolean => {
     const newErrors: Partial<Settings> = {};
-    
+
     if (!settings.apiKey.trim()) {
       newErrors.apiKey = 'API Key 不能为空';
     }
-    
+
     try {
       new URL(settings.baseUrl);
     } catch {
       newErrors.baseUrl = '请输入有效的 URL';
     }
-    
+
     if (!settings.modelName.trim()) {
       newErrors.modelName = 'Model Name 不能为空';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -95,12 +101,12 @@ export function SettingsSheet() {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:bg-zinc-800">
+        <Button variant="ghost" size="icon" className="">
           <Settings className="h-5 w-5 text-zinc-400 hover:text-zinc-200" />
         </Button>
       </SheetTrigger>
-      <SheetContent 
-        side="bottom" 
+      <SheetContent
+        side="bottom"
         className="h-[400px] bg-zinc-900 text-zinc-100 border-t border-zinc-800"
       >
         <SheetHeader>
@@ -109,7 +115,12 @@ export function SettingsSheet() {
         </SheetHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="apiKey" className="text-zinc-300">API Key</Label>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="apiKey" className="text-zinc-300">
+                API Key
+              </Label>
+              {errors.apiKey && <AlertCircle className="h-4 w-4 text-red-500" />}
+            </div>
             <Input
               id="apiKey"
               type="password"
@@ -124,7 +135,12 @@ export function SettingsSheet() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="baseUrl" className="text-zinc-300">Base URL</Label>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="baseUrl" className="text-zinc-300">
+                Base URL
+              </Label>
+              {errors.baseUrl && <AlertCircle className="h-4 w-4 text-red-500" />}
+            </div>
             <Input
               id="baseUrl"
               type="text"
@@ -139,7 +155,12 @@ export function SettingsSheet() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="modelName" className="text-zinc-300">Model Name</Label>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="modelName" className="text-zinc-300">
+                Model Name
+              </Label>
+              {errors.modelName && <AlertCircle className="h-4 w-4 text-red-500" />}
+            </div>
             <Input
               id="modelName"
               type="text"
@@ -153,8 +174,8 @@ export function SettingsSheet() {
               }`}
             />
           </div>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             className="mt-4 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 transition-colors"
           >
             保存设置

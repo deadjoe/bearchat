@@ -54,7 +54,7 @@ export class TranslationService {
       ja: '日语',
       ko: '韩语',
       th: '泰语',
-      vi: '越南语'
+      vi: '越南语',
     };
 
     return `你是一个专业的翻译助手。请将以下${langMap[fromLang]}文本翻译成${langMap[toLang]}。
@@ -71,7 +71,7 @@ export class TranslationService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
+          Authorization: `Bearer ${this.config.apiKey}`,
         },
         body: JSON.stringify({
           model: this.config.modelName,
@@ -104,7 +104,7 @@ export class TranslationService {
         await this.delay(RETRY_DELAY);
         return this.translateWithRetry(request, retryCount - 1);
       }
-      
+
       return {
         text: '',
         error: error instanceof Error ? error.message : '翻译服务出错',

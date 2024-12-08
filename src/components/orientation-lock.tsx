@@ -7,9 +7,7 @@ export function OrientationLock() {
         <h2 className="text-xl font-mono tracking-wider uppercase mb-3">
           Please Rotate Your Device
         </h2>
-        <p className="text-zinc-400">
-          BearChat works best in portrait mode
-        </p>
+        <p className="text-zinc-400">BearChat works best in portrait mode</p>
       </div>
     </div>
   );

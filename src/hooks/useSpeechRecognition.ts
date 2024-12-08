@@ -56,7 +56,7 @@ export function useSpeechRecognition({
       const result = Array.from(event.results)
         .map(result => result[0].transcript)
         .join('');
-      
+
       if (event.results[event.results.length - 1].isFinal) {
         onResult?.(result);
       }
@@ -87,7 +87,7 @@ export function useSpeechRecognition({
 
   const startListening = useCallback(() => {
     if (!recognition) return;
-    
+
     setError(null);
     try {
       recognition.start();
@@ -100,7 +100,7 @@ export function useSpeechRecognition({
 
   const stopListening = useCallback(() => {
     if (!recognition) return;
-    
+
     recognition.stop();
     setIsListening(false);
   }, [recognition]);

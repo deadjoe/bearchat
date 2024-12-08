@@ -24,39 +24,71 @@ const BearChat = () => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [inputText, setInputText] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // 初始化默认设置
+  const defaultSettings = {
+    baseUrl: 'https://api.openai.com/v1',
+    modelName: 'gpt-3.5-turbo',
+    apiKey: '',
+  };
+
+  const [translationSettings, setTranslationSettings] = useState(defaultSettings);
+
+  // 加载设置
+  useEffect(() => {
+    try {
+      const savedSettings = localStorage.getItem('bearchat-settings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        const settings = {
+          baseUrl: parsed.baseUrl || defaultSettings.baseUrl,
+          modelName: parsed.modelName || defaultSettings.modelName,
+          apiKey: parsed.apiKey ? decrypt(parsed.apiKey) : '',
+        };
+
+        // 验证设置
+        if (!settings.baseUrl || !settings.modelName) {
+          throw new Error('Invalid settings');
+        }
+        try {
+          new URL(settings.baseUrl);
+        } catch {
+          throw new Error('Invalid base URL');
+        }
+
+        setTranslationSettings(settings);
+      }
+    } catch (error) {
+      console.error('Failed to load settings, using defaults:', error);
+      setTranslationSettings(defaultSettings);
+    }
+  }, []);
+
   const { playStartTone, playEndTone } = useAudioFeedback();
 
   const inputRef = useRef<HTMLDivElement>(null);
-  const translationRef = useRef<HTMLDivElement>(null);
+  const outputRef = useRef<HTMLDivElement>(null);
 
   // 语音识别
-  const {
-    isListening,
-    startListening,
-    stopListening,
-    error: recognitionError,
-  } = useSpeechRecognition({
+  const { isListening, startListening, stopListening } = useSpeechRecognition({
     language: inputLanguage === 'zh' ? 'zh-CN' : 'en-US',
-    onResult: (text) => {
+    onResult: text => {
       setInputText(text);
     },
-    onError: (err) => {
+    onError: err => {
       setError(`语音识别错误: ${err}`);
     },
   });
 
   // 翻译
-  const {
-    translatedText,
-    isTranslating,
-    error: translationError
-  } = useTranslation({
+  const { translatedText, isTranslating } = useTranslation({
     text: inputText,
     fromLang: inputLanguage,
     toLang: targetLanguage,
-    onError: (err) => {
+    settings: translationSettings,
+    onError: err => {
       setError(`翻译错误: ${err}`);
-    }
+    },
   });
 
   const handleMicClick = () => {
@@ -124,8 +156,8 @@ const BearChat = () => {
   }, [inputText]);
 
   useEffect(() => {
-    if (translationRef.current) {
-      translationRef.current.scrollTop = translationRef.current.scrollHeight;
+    if (outputRef.current) {
+      outputRef.current.scrollTop = outputRef.current.scrollHeight;
     }
   }, [translatedText]);
 
@@ -162,22 +194,36 @@ const BearChat = () => {
               {/* Main Text Area */}
               <div className={`flex-1 bg-white p-6 ${isFlipped ? 'rotate-180' : ''}`}>
                 <div className="relative h-[calc(100%-1.5rem)]">
-                  <div ref={translationRef} className="absolute inset-0 text-base text-zinc-800 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <div
+                    ref={outputRef}
+                    className="absolute inset-0 text-base text-zinc-800 overflow-y-auto overflow-x-hidden"
+                    style={{ WebkitOverflowScrolling: 'touch' }}
+                  >
                     {isTranslating ? (
                       <div className="flex items-center space-x-2">
                         <span className="text-zinc-400">正在翻译...</span>
                         <div className="animate-pulse h-2 w-2 bg-zinc-400 rounded-full"></div>
-                        <div className="animate-pulse h-2 w-2 bg-zinc-400 rounded-full" style={{ animationDelay: '200ms' }}></div>
-                        <div className="animate-pulse h-2 w-2 bg-zinc-400 rounded-full" style={{ animationDelay: '400ms' }}></div>
+                        <div
+                          className="animate-pulse h-2 w-2 bg-zinc-400 rounded-full"
+                          style={{ animationDelay: '200ms' }}
+                        ></div>
+                        <div
+                          className="animate-pulse h-2 w-2 bg-zinc-400 rounded-full"
+                          style={{ animationDelay: '400ms' }}
+                        ></div>
                       </div>
                     ) : (
                       translatedText || (
                         <span className="text-zinc-400">
-                          {targetLanguage === 'ja' ? 'こんにちは、話してください' : 
-                           targetLanguage === 'ko' ? '안녕하세요, 말씀해 주세요' :
-                           targetLanguage === 'th' ? 'สวัสดี โปรดพูด' :
-                           targetLanguage === 'vi' ? 'Xin chào, hãy nói' :
-                           'Hello, please speak'}
+                          {targetLanguage === 'ja'
+                            ? 'こんにちは、話してください'
+                            : targetLanguage === 'ko'
+                              ? '안녕하세요, 말씀해 주세요'
+                              : targetLanguage === 'th'
+                                ? 'สวัสดี โปรดพูด'
+                                : targetLanguage === 'vi'
+                                  ? 'Xin chào, hãy nói'
+                                  : 'Hello, please speak'}
                         </span>
                       )
                     )}
@@ -199,18 +245,29 @@ const BearChat = () => {
               {/* Main Text Area */}
               <div className="flex-1 bg-white p-6">
                 <div className="relative h-[calc(100%-1.5rem)]">
-                  <div ref={inputRef} className="absolute inset-0 text-base text-zinc-800 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <div
+                    ref={inputRef}
+                    className="absolute inset-0 text-base text-zinc-800 overflow-y-auto overflow-x-hidden"
+                    style={{ WebkitOverflowScrolling: 'touch' }}
+                  >
                     {isListening && (
                       <div className="absolute -left-8 top-0">
                         <div className="flex space-x-1">
                           <div className="animate-pulse h-2 w-2 bg-green-700 rounded-full"></div>
-                          <div className="animate-pulse h-2 w-2 bg-green-700 rounded-full" style={{ animationDelay: '200ms' }}></div>
-                          <div className="animate-pulse h-2 w-2 bg-green-700 rounded-full" style={{ animationDelay: '400ms' }}></div>
+                          <div
+                            className="animate-pulse h-2 w-2 bg-green-700 rounded-full"
+                            style={{ animationDelay: '200ms' }}
+                          ></div>
+                          <div
+                            className="animate-pulse h-2 w-2 bg-green-700 rounded-full"
+                            style={{ animationDelay: '400ms' }}
+                          ></div>
                         </div>
                       </div>
                     )}
                     <span className={inputText ? 'text-zinc-800' : 'text-zinc-400'}>
-                      {inputText || (inputLanguage === 'zh' ? '你好，请说话' : 'Hello, please speak')}
+                      {inputText ||
+                        (inputLanguage === 'zh' ? '你好，请说话' : 'Hello, please speak')}
                     </span>
                   </div>
                   {error && (
@@ -249,8 +306,8 @@ const BearChat = () => {
                     variant="ghost"
                     size="icon"
                     className={`w-20 ${
-                      isListening 
-                        ? 'text-green-500 bg-green-700/20 hover:bg-green-700/30 hover:text-green-400' 
+                      isListening
+                        ? 'text-green-500 bg-green-700/20 hover:bg-green-700/30 hover:text-green-400'
                         : 'text-zinc-500 hover:text-zinc-900'
                     }`}
                     onClick={handleMicClick}
@@ -261,15 +318,17 @@ const BearChat = () => {
                     variant="ghost"
                     size="icon"
                     className={`w-20 ${
-                      isSpeakerOn 
-                        ? 'text-zinc-900' 
-                        : 'text-zinc-500 hover:text-zinc-900'
+                      isSpeakerOn ? 'text-zinc-900' : 'text-zinc-500 hover:text-zinc-900'
                     }`}
                     onClick={() => setIsSpeakerOn(!isSpeakerOn)}
                   >
                     {isSpeakerOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
                   </Button>
-                  <Button variant="ghost" size="icon" className="w-20 text-zinc-500 hover:text-zinc-900">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-20 text-zinc-500 hover:text-zinc-900"
+                  >
                     <SettingsSheet />
                   </Button>
 

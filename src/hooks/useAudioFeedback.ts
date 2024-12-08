@@ -8,16 +8,10 @@ export const useAudioFeedback = () => {
     gainNode.connect(audioContext.destination);
 
     oscillator.frequency.setValueAtTime(startFreq, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(
-      endFreq,
-      audioContext.currentTime + duration
-    );
+    oscillator.frequency.exponentialRampToValueAtTime(endFreq, audioContext.currentTime + duration);
 
     gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.01,
-      audioContext.currentTime + duration
-    );
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
 
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + duration);

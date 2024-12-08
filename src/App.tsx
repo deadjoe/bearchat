@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mic, VolumeX, Volume2, FlipVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SettingsSheet } from '@/components/settings-sheet';
@@ -25,6 +25,9 @@ const BearChat = () => {
   const [inputText, setInputText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { playStartTone, playEndTone } = useAudioFeedback();
+
+  const inputRef = useRef<HTMLDivElement>(null);
+  const translationRef = useRef<HTMLDivElement>(null);
 
   // 语音识别
   const {
@@ -113,6 +116,19 @@ const BearChat = () => {
     );
   };
 
+  // 添加自动滚动效果
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.scrollTop = inputRef.current.scrollHeight;
+    }
+  }, [inputText]);
+
+  useEffect(() => {
+    if (translationRef.current) {
+      translationRef.current.scrollTop = translationRef.current.scrollHeight;
+    }
+  }, [translatedText]);
+
   return (
     <>
       {!isPortrait ? (
@@ -145,8 +161,8 @@ const BearChat = () => {
 
               {/* Main Text Area */}
               <div className={`flex-1 bg-white p-6 ${isFlipped ? 'rotate-180' : ''}`}>
-                <div className="relative">
-                  <div className="text-2xl text-zinc-800">
+                <div className="relative h-[calc(100%-1.5rem)]">
+                  <div ref={translationRef} className="absolute inset-0 text-base text-zinc-800 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
                     {isTranslating ? (
                       <div className="flex items-center space-x-2">
                         <span className="text-zinc-400">正在翻译...</span>
@@ -167,7 +183,7 @@ const BearChat = () => {
                     )}
                   </div>
                   {error && (
-                    <div className="mt-2 text-sm text-red-500 absolute bottom-0 left-0 transform translate-y-full">
+                    <div className="absolute bottom-0 left-0 right-0 mt-2 text-sm text-red-500 bg-white">
                       {error}
                     </div>
                   )}
@@ -182,10 +198,10 @@ const BearChat = () => {
             <div className="h-1/2 flex border-t border-zinc-200">
               {/* Main Text Area */}
               <div className="flex-1 bg-white p-6">
-                <div className="relative">
-                  <div className="text-2xl text-zinc-800">
+                <div className="relative h-[calc(100%-1.5rem)]">
+                  <div ref={inputRef} className="absolute inset-0 text-base text-zinc-800 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
                     {isListening && (
-                      <div className="absolute -left-8 top-1/2 transform -translate-y-1/2">
+                      <div className="absolute -left-8 top-0">
                         <div className="flex space-x-1">
                           <div className="animate-pulse h-2 w-2 bg-green-700 rounded-full"></div>
                           <div className="animate-pulse h-2 w-2 bg-green-700 rounded-full" style={{ animationDelay: '200ms' }}></div>
@@ -198,7 +214,7 @@ const BearChat = () => {
                     </span>
                   </div>
                   {error && (
-                    <div className="mt-2 text-sm text-red-500 absolute bottom-0 left-0 transform translate-y-full">
+                    <div className="absolute bottom-0 left-0 right-0 mt-2 text-sm text-red-500 bg-white">
                       {error}
                     </div>
                   )}

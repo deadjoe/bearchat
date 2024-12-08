@@ -10,6 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  SheetClose,
 } from '@/components/ui/sheet';
 
 // 简单的加密函数
@@ -40,6 +41,8 @@ const defaultSettings: Settings = {
 
 export function SettingsSheet() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [errors, setErrors] = useState<Partial<Settings>>({});
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     // 加载保存的设置
@@ -57,59 +60,103 @@ export function SettingsSheet() {
     }
   }, []);
 
+  const validateSettings = (): boolean => {
+    const newErrors: Partial<Settings> = {};
+    
+    if (!settings.apiKey.trim()) {
+      newErrors.apiKey = 'API Key 不能为空';
+    }
+    
+    try {
+      new URL(settings.baseUrl);
+    } catch {
+      newErrors.baseUrl = '请输入有效的 URL';
+    }
+    
+    if (!settings.modelName.trim()) {
+      newErrors.modelName = 'Model Name 不能为空';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSave = () => {
-    // 保存设置到 localStorage，API Key 进行加密
-    const settingsToSave = {
-      ...settings,
-      apiKey: settings.apiKey ? encrypt(settings.apiKey) : '',
-    };
-    localStorage.setItem('bearchat-settings', JSON.stringify(settingsToSave));
+    if (validateSettings()) {
+      const settingsToSave = {
+        ...settings,
+        apiKey: settings.apiKey ? encrypt(settings.apiKey) : '',
+      };
+      localStorage.setItem('bearchat-settings', JSON.stringify(settingsToSave));
+      setIsOpen(false); // 保存成功后关闭面板
+    }
   };
 
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:bg-zinc-100">
-          <Settings className="h-5 w-5 text-zinc-600" />
+        <Button variant="ghost" size="icon" className="hover:bg-zinc-800">
+          <Settings className="h-5 w-5 text-zinc-400 hover:text-zinc-200" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[400px]">
+      <SheetContent 
+        side="bottom" 
+        className="h-[400px] bg-zinc-900 text-zinc-100 border-t border-zinc-800"
+      >
         <SheetHeader>
-          <SheetTitle className="text-left">设置</SheetTitle>
-          <SheetDescription className="text-left">配置 API 设置</SheetDescription>
+          <SheetTitle className="text-left text-zinc-100">设置</SheetTitle>
+          <SheetDescription className="text-left text-zinc-400">配置 API 设置</SheetDescription>
         </SheetHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="apiKey">API Key</Label>
+            <Label htmlFor="apiKey" className="text-zinc-300">API Key</Label>
             <Input
               id="apiKey"
               type="password"
               value={settings.apiKey}
-              onChange={e => setSettings({ ...settings, apiKey: e.target.value })}
-              className="col-span-3"
+              onChange={e => {
+                setSettings({ ...settings, apiKey: e.target.value });
+                setErrors({ ...errors, apiKey: undefined });
+              }}
+              className={`bg-zinc-800 border-zinc-700 text-zinc-100 focus:border-zinc-500 ${
+                errors.apiKey ? 'border-red-500' : ''
+              }`}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="baseUrl">Base URL</Label>
+            <Label htmlFor="baseUrl" className="text-zinc-300">Base URL</Label>
             <Input
               id="baseUrl"
               type="text"
               value={settings.baseUrl}
-              onChange={e => setSettings({ ...settings, baseUrl: e.target.value })}
-              className="col-span-3"
+              onChange={e => {
+                setSettings({ ...settings, baseUrl: e.target.value });
+                setErrors({ ...errors, baseUrl: undefined });
+              }}
+              className={`bg-zinc-800 border-zinc-700 text-zinc-100 focus:border-zinc-500 ${
+                errors.baseUrl ? 'border-red-500' : ''
+              }`}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="modelName">Model Name</Label>
+            <Label htmlFor="modelName" className="text-zinc-300">Model Name</Label>
             <Input
               id="modelName"
               type="text"
               value={settings.modelName}
-              onChange={e => setSettings({ ...settings, modelName: e.target.value })}
-              className="col-span-3"
+              onChange={e => {
+                setSettings({ ...settings, modelName: e.target.value });
+                setErrors({ ...errors, modelName: undefined });
+              }}
+              className={`bg-zinc-800 border-zinc-700 text-zinc-100 focus:border-zinc-500 ${
+                errors.modelName ? 'border-red-500' : ''
+              }`}
             />
           </div>
-          <Button onClick={handleSave} className="mt-4 bg-zinc-900 text-zinc-50 hover:bg-zinc-800">
+          <Button 
+            onClick={handleSave} 
+            className="mt-4 bg-zinc-100 text-zinc-900 hover:bg-zinc-200 transition-colors"
+          >
             保存设置
           </Button>
         </div>

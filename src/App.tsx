@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { SettingsSheet } from '@/components/settings-sheet';
 import { OrientationLock } from '@/components/orientation-lock';
 import { useOrientation } from '@/hooks/useOrientation';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useAudioFeedback } from '@/hooks/useAudioFeedback';
 
 interface LanguageButtonProps {
   value: string;
@@ -17,9 +20,51 @@ const BearChat = () => {
   const isPortrait = useOrientation();
   const [inputLanguage, setInputLanguage] = useState('zh');
   const [targetLanguage, setTargetLanguage] = useState('ja');
-  const [isListening, setIsListening] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [inputText, setInputText] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const { playStartTone, playEndTone } = useAudioFeedback();
+
+  // 语音识别
+  const {
+    isListening,
+    startListening,
+    stopListening,
+    error: recognitionError,
+  } = useSpeechRecognition({
+    language: inputLanguage === 'zh' ? 'zh-CN' : 'en-US',
+    onResult: (text) => {
+      setInputText(text);
+    },
+    onError: (err) => {
+      setError(`语音识别错误: ${err}`);
+    },
+  });
+
+  // 翻译
+  const {
+    translatedText,
+    isTranslating,
+    error: translationError
+  } = useTranslation({
+    text: inputText,
+    fromLang: inputLanguage,
+    toLang: targetLanguage,
+    onError: (err) => {
+      setError(`翻译错误: ${err}`);
+    }
+  });
+
+  const handleMicClick = () => {
+    if (isListening) {
+      stopListening();
+      playEndTone();
+    } else {
+      startListening();
+      playStartTone();
+    }
+  };
 
   const LanguageButton = ({
     value,
@@ -100,7 +145,33 @@ const BearChat = () => {
 
               {/* Main Text Area */}
               <div className={`flex-1 bg-white p-6 ${isFlipped ? 'rotate-180' : ''}`}>
-                <div className="text-2xl text-zinc-800">こんにちは、話してください</div>
+                <div className="relative">
+                  <div className="text-2xl text-zinc-800">
+                    {isTranslating ? (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-zinc-400">正在翻译...</span>
+                        <div className="animate-pulse h-2 w-2 bg-zinc-400 rounded-full"></div>
+                        <div className="animate-pulse h-2 w-2 bg-zinc-400 rounded-full" style={{ animationDelay: '200ms' }}></div>
+                        <div className="animate-pulse h-2 w-2 bg-zinc-400 rounded-full" style={{ animationDelay: '400ms' }}></div>
+                      </div>
+                    ) : (
+                      translatedText || (
+                        <span className="text-zinc-400">
+                          {targetLanguage === 'ja' ? 'こんにちは、話してください' : 
+                           targetLanguage === 'ko' ? '안녕하세요, 말씀해 주세요' :
+                           targetLanguage === 'th' ? 'สวัสดี โปรดพูด' :
+                           targetLanguage === 'vi' ? 'Xin chào, hãy nói' :
+                           'Hello, please speak'}
+                        </span>
+                      )
+                    )}
+                  </div>
+                  {error && (
+                    <div className="mt-2 text-sm text-red-500 absolute bottom-0 left-0 transform translate-y-full">
+                      {error}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Target Language Buttons - Original position */}
@@ -111,54 +182,84 @@ const BearChat = () => {
             <div className="h-1/2 flex border-t border-zinc-200">
               {/* Main Text Area */}
               <div className="flex-1 bg-white p-6">
-                <div className="text-2xl text-zinc-800">
-                  {inputLanguage === 'zh' ? '你好，请说话' : 'Hello, please speak'}
+                <div className="relative">
+                  <div className="text-2xl text-zinc-800">
+                    {isListening && (
+                      <div className="absolute -left-8 top-1/2 transform -translate-y-1/2">
+                        <div className="flex space-x-1">
+                          <div className="animate-pulse h-2 w-2 bg-green-700 rounded-full"></div>
+                          <div className="animate-pulse h-2 w-2 bg-green-700 rounded-full" style={{ animationDelay: '200ms' }}></div>
+                          <div className="animate-pulse h-2 w-2 bg-green-700 rounded-full" style={{ animationDelay: '400ms' }}></div>
+                        </div>
+                      </div>
+                    )}
+                    <span className={inputText ? 'text-zinc-800' : 'text-zinc-400'}>
+                      {inputText || (inputLanguage === 'zh' ? '你好，请说话' : 'Hello, please speak')}
+                    </span>
+                  </div>
+                  {error && (
+                    <div className="mt-2 text-sm text-red-500 absolute bottom-0 left-0 transform translate-y-full">
+                      {error}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Source Language Buttons - Always on right */}
-              <div className="w-28 bg-zinc-100 p-4 flex flex-col gap-3">
-                <LanguageButton
-                  value="zh"
-                  selected={inputLanguage === 'zh'}
-                  onClick={() => setInputLanguage('zh')}
-                >
-                  中文
-                </LanguageButton>
-                <LanguageButton
-                  value="en"
-                  selected={inputLanguage === 'en'}
-                  onClick={() => setInputLanguage('en')}
-                >
-                  English
-                </LanguageButton>
+              <div className="w-28 bg-zinc-100 p-4 flex flex-col">
+                <div className="flex flex-col gap-3">
+                  <LanguageButton
+                    value="zh"
+                    selected={inputLanguage === 'zh'}
+                    onClick={() => setInputLanguage('zh')}
+                  >
+                    中文
+                  </LanguageButton>
+                  <LanguageButton
+                    value="en"
+                    selected={inputLanguage === 'en'}
+                    onClick={() => setInputLanguage('en')}
+                  >
+                    English
+                  </LanguageButton>
+                </div>
 
                 {/* 添加一个小的间距 */}
                 <div className="h-4" />
 
                 {/* Control Buttons */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`w-20 ${isListening ? 'text-zinc-900' : 'text-zinc-500 hover:text-zinc-900'}`}
-                  onClick={() => setIsListening(!isListening)}
-                >
-                  <Mic size={20} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`w-20 ${isSpeakerOn ? 'text-zinc-900' : 'text-zinc-500 hover:text-zinc-900'}`}
-                  onClick={() => setIsSpeakerOn(!isSpeakerOn)}
-                >
-                  {isSpeakerOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
-                </Button>
-                <Button variant="ghost" size="icon" className="w-20 text-zinc-500 hover:text-zinc-900">
-                  <SettingsSheet />
-                </Button>
+                <div className="flex flex-col items-center space-y-4">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`w-20 ${
+                      isListening 
+                        ? 'text-green-500 bg-green-700/20 hover:bg-green-700/30 hover:text-green-400' 
+                        : 'text-zinc-500 hover:text-zinc-900'
+                    }`}
+                    onClick={handleMicClick}
+                  >
+                    <Mic size={20} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`w-20 ${
+                      isSpeakerOn 
+                        ? 'text-zinc-900' 
+                        : 'text-zinc-500 hover:text-zinc-900'
+                    }`}
+                    onClick={() => setIsSpeakerOn(!isSpeakerOn)}
+                  >
+                    {isSpeakerOn ? <Volume2 size={20} /> : <VolumeX size={20} />}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="w-20 text-zinc-500 hover:text-zinc-900">
+                    <SettingsSheet />
+                  </Button>
 
-                {/* 添加弹性空间把按钮往上推 */}
-                <div className="flex-1" />
+                  {/* 添加弹性空间把按钮往上推 */}
+                  <div className="flex-1" />
+                </div>
               </div>
             </div>
           </div>
